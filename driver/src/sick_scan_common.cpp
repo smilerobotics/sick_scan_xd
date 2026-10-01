@@ -958,8 +958,17 @@ namespace sick_scan_xd
   SickScanCommon::~SickScanCommon()
   {
     delete cloud_marker_;
-    // delete diagnosticPub_; // do not delete to avoid ParameterAlreadyDeclaredException on reinitialisation
-    // diagnosticPub_ = 0;
+#if defined USE_DIAGNOSTIC_UPDATER
+    // The diagnostic updater is static and outlives this instance, while the frequency status task registered by
+    // diagnosticPub_ holds pointers to expectedFrequency_. Unregister the task before this instance is destroyed,
+    // otherwise the next diagnostic update dereferences freed memory after a reinitialisation.
+    if (diagnostics_ && diagnosticPub_)
+    {
+      diagnostics_->removeByName(diagnosticPub_->getName());
+    }
+    delete diagnosticPub_;
+    diagnosticPub_ = 0;
+#endif
     printf("SickScanCommon closed.\n");
   }
 
